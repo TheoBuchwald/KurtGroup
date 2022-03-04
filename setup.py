@@ -2,11 +2,11 @@ from setuptools import setup
 
 
 setup(
-    name='Kurt',
+    name='KurtGroup',
     version='1.0.0',
     author='Theo Juncker von Buchwald',
     author_email='fnc970@alumni.ku.dk',
-    packages=['Kurt'],
+    packages=['KurtGroup'],
     license='LICENCSE',
     description='A package containing scripts and programs developed and used in Professor Kurt V. Mikkelsens group at the University of Copenhagen.',
     long_description=open('README.md').read(),
