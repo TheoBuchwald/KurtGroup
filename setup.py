@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='KurtGroup',
-    version='1.1.0',
+    version='1.1.1',
     author='Theo Juncker von Buchwald',
     author_email='fnc970@alumni.ku.dk',
     packages=['Kurt'],

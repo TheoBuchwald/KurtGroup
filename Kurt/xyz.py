@@ -277,12 +277,3 @@ Exiting program''')
         """
         with open(self.input_filename, 'w') as input_file:
             input_file.writelines(self.filetext)
-
-
-# A = xyz_to('Gaussian94', 'Ethanol.xyz')
-# A.processXYZ()
-# A.setFunctional('B3LYP')
-# A.setBasis('aug-cc-pV5Z')
-# text = A.generateGaussianInputFileText(0)
-# A.writeInputfile()
-# print(text)
