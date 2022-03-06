@@ -65,11 +65,30 @@ class BasisSet:
     def __init__(self):
         self.BSE = "https://www.basissetexchange.org/"
 
-    def GenerateBasisSet(self, Programme: str, BasisSet: str, Atoms: list, SupressHeader: bool = False) -> str:
+    @staticmethod
+    def CheckBasisSet(Program: str, BasisSet: str) -> bool:
+        """Checks if a basis set for a program exits in the Basis Set Exchange
+
+        Args:
+            Program (str): Program to check for
+            BasisSet (str): Basis set to check for
+
+        Returns:
+            bool: Returns true or false
+        """
+        try:
+            response = requests.get(f'https://www.basissetexchange.org/api/basis/{BasisSet}/format/{Program}') # Request data from BSE
+        except Exception:
+            raise ConnectionError("Could not connect to Basis Set Exchange: Please check your internet connection") from None
+
+        return response.status_code == 200
+
+
+    def GenerateBasisSet(self, Program: str, BasisSet: str, Atoms: list, SupressHeader: bool = False) -> str:
         atoms = set(Atoms) # Remove duplicate atoms
         parameters = {'elements': [atoms]}
         try:
-            response = requests.get(f'{self.BSE}/api/basis/{BasisSet}/format/{Programme}', params=parameters) # Request data from BSE
+            response = requests.get(f'{self.BSE}/api/basis/{BasisSet}/format/{Program}', params=parameters) # Request data from BSE
         except Exception:
             raise ConnectionError("Could not connect to Basis Set Exchange: Please check your internet connection") from None
 
@@ -92,10 +111,10 @@ class BasisSet:
             self.basis += f'{i}\n'
         return self.basis
 
-    def AtomBasisSet(self, Programme: str, BasisSet: str, Atom: str, SupressHeader: bool = False) -> str:
+    def AtomBasisSet(self, Program: str, BasisSet: str, Atom: str, SupressHeader: bool = False) -> str:
         parameters = {'elements': [Atom]}
         try:
-            response = requests.get(f'{self.BSE}/api/basis/{BasisSet}/format/{Programme}', params=parameters) # Request data from BSE
+            response = requests.get(f'{self.BSE}/api/basis/{BasisSet}/format/{Program}', params=parameters) # Request data from BSE
         except Exception:
             raise ConnectionError("Could not connect to Basis Set Exchange: Please check your internet connection") from None
 
