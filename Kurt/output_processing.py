@@ -546,6 +546,26 @@ class orca_extract:
         with open(self.filename, "r") as file:
             self.lines = file.readlines()
 
+    def _CPUS(self):
+        linenumber = Forward_search_last(self.filename, 'Sum of individual times         ...', 'CPU time')
+        if type(linenumber) == int:
+            self.total_cpu_time = float(self.lines[linenumber].split()[-2])
+            linenumber2 = Forward_search_last(self.filename, 'PAL', 'cpu count')
+            if type(linenumber2) == int:
+                self.pr_cpu_time = self.total_cpu_time * int(self.lines[linenumber2].split()[-1][3:])
+                if self.NeededArguments['_CPUS'] == 's':
+                    self.pr_cpu_time *= 60
+                elif self.NeededArguments['_CPUS'] == 'h':
+                    self.pr_cpu_time /= 60
+            else:
+                self.pr_cpu_time = 'NaN'
+            if self.NeededArguments['_CPUS'] == 's':
+                self.total_cpu_time *= 60
+            elif self.NeededArguments['_CPUS'] == 'h':
+                self.total_cpu_time /= 60
+            return
+        self.total_cpu_time = 'NaN'
+
     def _Energy(self):
         linenumber = Forward_search_last(self.filename, 'Electronic energy', 'Final energy', quiet=True)
         if type(linenumber) == int:
