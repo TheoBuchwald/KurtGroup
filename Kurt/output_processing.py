@@ -55,6 +55,19 @@ def Forward_search_after_last(file: str, text1: str, text2: str, lines: int, err
     res = str(res).split('-')
     return int(res[0].replace('b\'','').replace('\'','')) - 1
 
+def Backward_search_last(file: str, text: str, filelength: int, error: str, quiet: bool = False):
+    ps1 = subprocess.run(['tac', file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out = subprocess.run(['grep', '-nTm1', text], input=ps1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    res = out.stdout
+    if len(res) == 0:
+        if not quiet:
+            print(f'No {error} could be found in {file}')
+        return 'NaN'
+    res = res.split()[0]
+    res = str(res).split(':')
+    return filelength - int(res[0].replace('b\'','').replace('\'',''))
+
+
 def Forward_search_first(file: str, text: str, error: str, quiet: bool = False):
     """Searches from beginning of file and finds the first occurence of [text]
 
@@ -363,6 +376,21 @@ class gaus_extract:
         with open(self.filename, "r") as file:
             self.lines = file.readlines()
 
+    def _CPUS(self):
+        linenumber = Backward_search_last(self.filename, 'Job cpu time:', self.end, 'CPU time', quiet=self.quiet)
+        if type(linenumber) == int:
+            self.total_cpu_time = float(self.lines[linenumber].split()[3])*24*60 + float(self.lines[linenumber].split()[5])*60 + float(self.lines[linenumber].split()[7]) + float(self.lines[linenumber].split()[9])/60
+            self.wall_cpu_time = float(self.lines[linenumber+1].split()[2])*24*60 + float(self.lines[linenumber+1].split()[4])*60 + float(self.lines[linenumber+1].split()[6]) + float(self.lines[linenumber+1].split()[8])/60
+            if self.NeededArguments['_CPUS'] == 's':
+                self.total_cpu_time *= 60
+                self.wall_cpu_time *= 60
+            elif self.NeededArguments['_CPUS'] == 'h':
+                self.total_cpu_time /= 60
+                self.wall_cpu_time /= 60
+            return
+        self.total_cpu_time = 'NaN'
+        self.wall_cpu_time = 'NaN'
+
     def _Energy(self):
         linenumber = Forward_search_last(self.filename, 'Sum of electronic and zero-point Energies=', 'final energy', quiet=True)
         if type(linenumber) == int:
@@ -547,22 +575,22 @@ class orca_extract:
             self.lines = file.readlines()
 
     def _CPUS(self):
-        linenumber = Forward_search_last(self.filename, 'Sum of individual times         ...', 'CPU time')
+        linenumber = Backward_search_last(self.filename, 'Sum of individual times         ...', self.end, 'CPU time', quiet=self.quiet)
         if type(linenumber) == int:
-            self.total_cpu_time = float(self.lines[linenumber].split()[-2])
-            linenumber2 = Forward_search_last(self.filename, 'PAL', 'cpu count')
+            self.wall_cpu_time = float(self.lines[linenumber].split()[-2])
+            linenumber2 = Forward_search_last(self.filename, 'PAL', 'CPU count', quiet=self.quiet)
             if type(linenumber2) == int:
-                self.pr_cpu_time = self.total_cpu_time * int(self.lines[linenumber2].split()[-1][3:])
+                self.total_cpu_time = self.wall_cpu_time * int(self.lines[linenumber2].split()[-1][3:])
                 if self.NeededArguments['_CPUS'] == 's':
-                    self.pr_cpu_time *= 60
+                    self.total_cpu_time *= 60
                 elif self.NeededArguments['_CPUS'] == 'h':
-                    self.pr_cpu_time /= 60
+                    self.total_cpu_time /= 60
             else:
-                self.pr_cpu_time = 'NaN'
+                self.total_cpu_time = 'NaN'
             if self.NeededArguments['_CPUS'] == 's':
-                self.total_cpu_time *= 60
+                self.wall_cpu_time *= 60
             elif self.NeededArguments['_CPUS'] == 'h':
-                self.total_cpu_time /= 60
+                self.wall_cpu_time /= 60
             return
         self.total_cpu_time = 'NaN'
 
@@ -749,6 +777,49 @@ class dal_extract:
     def ReadFile(self):
         with open(self.filename, "r") as file:
             self.lines = file.readlines()
+
+    def _CPUS(self):
+        linenumber = Backward_search_last(self.filename, 'Total CPU  time used in DALTON:', self.end, 'CPU time', quiet=self.quiet)
+        if type(linenumber) == int:
+            self.total_cpu_time = 0.
+            self.wall_cpu_time = 0.
+            total_time = self.lines[linenumber].split()[6:]
+            pr_time = self.lines[linenumber+1].split()[6:]
+            for i, time_value in enumerate(total_time[-2::-2]):
+                if i*2 == 0:
+                    self.total_cpu_time += float(time_value) / 60
+                elif i*2 == 2:
+                    self.total_cpu_time += float(time_value)
+                elif i*2 == 4:
+                    self.total_cpu_time += float(time_value) * 60
+                elif i*2 == 6:
+                    self.total_cpu_time += float(time_value) * 60 * 24
+                else:
+                    print('''It was not expected that DALTON would print anything larger than days in the total CPU time
+This will not be accounted for when printing the CPU time. The result will therefore not be correct
+Please contact a maintainer of the script ot have this updated''')
+            for i, time_value in enumerate(pr_time[-2::-2]):
+                if i*2 == 0:
+                    self.wall_cpu_time += float(time_value) / 60
+                elif i*2 == 2:
+                    self.wall_cpu_time += float(time_value)
+                elif i*2 == 4:
+                    self.wall_cpu_time += float(time_value) * 60
+                elif i*2 == 6:
+                    self.wall_cpu_time += float(time_value) * 60 * 24
+                else:
+                    print('''It was not expected that DALTON would print anything larger than days in the total CPU time
+This will not be accounted for when printing the CPU time. The result will therefore not be correct
+Please contact a maintainer of the script ot have this updated''')
+            if self.NeededArguments['_CPUS'] == 's':
+                self.total_cpu_time *= 60
+                self.wall_cpu_time *= 60
+            elif self.NeededArguments['_CPUS'] == 'h':
+                self.total_cpu_time /= 60
+                self.wall_cpu_time /= 60
+            return
+        self.wall_cpu_time = 'NaN'
+        self.total_cpu_time = 'NaN'
 
     def _Energy(self):
         linenumber = Forward_search_last(self.filename, 'Total .*  energy:', 'final energy', quiet=True)
@@ -957,6 +1028,64 @@ class lsdal_extract:
     def ReadFile(self):
         with open(self.filename, "r") as file:
             self.lines = file.readlines()
+
+    def _CPUS(self):
+        linenumber = Backward_search_last(self.filename, '>>>  CPU Time used in LSDALTON is', self.end, 'CPU time', quiet=self.quiet)
+        if type(linenumber) == int:
+            self.total_cpu_time = 0.
+            self.wall_cpu_time = 0.
+            total_time = self.lines[linenumber].split()[7:]
+            pr_time = self.lines[linenumber+1].split()[7:]
+            for i, time_value in enumerate(total_time[-2::-2]):
+                if i*2 == 0:
+                    self.total_cpu_time += float(time_value) / 60
+                elif i*2 == 2:
+                    self.total_cpu_time += float(time_value)
+                elif i*2 == 4:
+                    self.total_cpu_time += float(time_value) * 60
+                elif i*2 == 6:
+                    self.total_cpu_time += float(time_value) * 60 * 24
+                else:
+                    print('''It was not expected that LSDALTON would print anything larger than days in the total CPU time
+This will not be accounted for when printing the CPU time. The result will therefore not be correct
+Please contact a maintainer of the script ot have this updated''')
+            for i, time_value in enumerate(pr_time[-2::-2]):
+                if i*2 == 0:
+                    self.wall_cpu_time += float(time_value) / 60
+                elif i*2 == 2:
+                    self.wall_cpu_time += float(time_value)
+                elif i*2 == 4:
+                    self.wall_cpu_time += float(time_value) * 60
+                elif i*2 == 6:
+                    self.wall_cpu_time += float(time_value) * 60 * 24
+                else:
+                    print('''It was not expected that LSDALTON would print anything larger than days in the total CPU time
+This will not be accounted for when printing the CPU time. The result will therefore not be correct
+Please contact a maintainer of the script ot have this updated''')
+            if self.NeededArguments['_CPUS'] == 's':
+                self.total_cpu_time *= 60
+                self.wall_cpu_time *= 60
+            elif self.NeededArguments['_CPUS'] == 'h':
+                self.total_cpu_time /= 60
+                self.wall_cpu_time /= 60
+            return
+        self.total_cpu_time = 'NaN'
+        self.wall_cpu_time = 'NaN'
+
+    def _Energy(self):
+        linenumber = Forward_search_last(self.filename, 'Total .*  energy:', 'final energy', quiet=True)
+        if type(linenumber) == int:
+            self.tot_energy = float(self.lines[linenumber].split()[-1])
+            return
+        linenumber = Forward_search_last(self.filename, '@    Final .* energy:', 'final energy', quiet=True)
+        if type(linenumber) == int:
+            self.tot_energy = float(self.lines[linenumber].split()[-1])
+            return
+        linenumber = Forward_search_last(self.filename, '@ Energy at final geometry is', 'final energy', quiet=self.quiet)
+        if type(linenumber) == int:
+            self.tot_energy = float(self.lines[linenumber].split()[-2])
+            return
+        self.tot_energy = 'NaN'
 
     def _Energy(self):
         linenumber = Forward_search_last(self.filename, 'ENERGY SUMMARY', 'final energy', quiet=True)
