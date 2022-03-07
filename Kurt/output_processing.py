@@ -458,7 +458,9 @@ class gaus_extract:
             linenumbers = Forward_search_all(self.filename, 'Excited State', 'oscillator strengths', quiet=self.quiet)
             linenumbers = [i for i in linenumbers if i > linenumber]
             for i in linenumbers:
-                self.osc_strengths.append(float(self.lines[i].split()[-1].replace('f=','')))
+                for j in self.lines[i].split():
+                    if 'f=' in j:
+                        self.osc_strengths.append(float(j.replace('f=','')))
         if len(self.osc_strengths) == 0:
             self.osc_strengths = ['NaN'] * abs(self.NeededArguments['_Excitation_energies'])
         if len(self.osc_strengths) < self.NeededArguments['_Excitation_energies']:
