@@ -97,7 +97,7 @@ Exiting program''')
         Returns:
             bool: Returns true or false
         """
-        return basis in self.info[self.program]['basis sets']
+        return basis.upper() in self.info[self.program.upper()]['BASIS SETS']
 
     def setMethod(self, method: str, functional: str = None) -> None:
         """Set method (HF, MP2, DFT and so on...)
@@ -108,7 +108,7 @@ Exiting program''')
         """
         self.method = method.upper()
         if self.method.upper() == 'DFT':
-            self.setFunctional(self, functional)
+            self.setFunctional(functional)
 
     def setFunctional(self, functional: str) -> None:
         """Functional to use. Only relevant if using DFT method
@@ -132,7 +132,7 @@ Exiting program''')
         Returns:
             bool: Returns true or false
         """
-        return functional.upper() in self.info[self.program]['functionals']
+        return functional.upper() in self.info[self.program.upper()]['FUNCTIONALS']
 
     def readXYZ(self, xyz_file: str) -> None:
         """Reads the xyz file
@@ -225,6 +225,7 @@ The problem may also be that the basis set does not exist for {unique_atom}''')
 Exiting program''')
             exit()
 
+        basis_name = self.basis
         if self.BSE:
             BasisSet = ci.BasisSet()
             try:
