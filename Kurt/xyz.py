@@ -264,10 +264,13 @@ Exiting program''')
 
         for atom in self.atoms:
             self.filetext += f'{atom[0]} {atom[1]: >14.9} {atom[2]: >19.9} {atom[3]: >19.9}\n'
+        
+        self.filetext += '\n'        
 
         if self.BSE:
             self.filetext += '****\n'
             self.filetext += f'{basis_mol}\n'
+            self.filetext += '\n'
 
         self.basis = basis_name
 
